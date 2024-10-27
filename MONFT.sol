@@ -23,6 +23,7 @@ contract MultiOwnerNFT is Context, ERC165, IERC721, Ownable {
 
     event TokenMinted(uint256 tokenId, address owner);
     event TokenTransferred(uint256 tokenId, address from, address to);
+    event TokenBurned(uint256 tokenId, address owner); // New burn event
 
     constructor(address owner) Ownable(owner) {}
 
@@ -167,6 +168,22 @@ contract MultiOwnerNFT is Context, ERC165, IERC721, Ownable {
         _balances[to] += 1;
 
         emit TokenTransferred(tokenId, from, to);
+    }
+
+    // New burn function
+    function burn(uint256 tokenId) external {
+        require(
+            isOwner(tokenId, _msgSender()),
+            "MO-NFT: Only an owner can burn their ownership"
+        );
+
+        // Remove the caller from the owners set
+        _owners[tokenId].remove(_msgSender());
+
+        // Decrement the balance of the owner
+        _balances[_msgSender()] -= 1;
+
+        emit TokenBurned(tokenId, _msgSender());
     }
 
     function supportsInterface(
