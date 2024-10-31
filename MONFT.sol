@@ -23,6 +23,7 @@ contract MultiOwnerNFT is Context, ERC165, IERC721, Ownable {
 
     event TokenMinted(uint256 tokenId, address owner);
     event TokenTransferred(uint256 tokenId, address from, address to);
+    event TokenBurned(uint256 tokenId, address owner); // New burn event
 
     constructor(address owner) Ownable(owner) {}
 
@@ -120,36 +121,17 @@ contract MultiOwnerNFT is Context, ERC165, IERC721, Ownable {
         _transfer(from, to, tokenId);
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public override {
-        safeTransferFrom(from, to, tokenId, "");
+    function safeTransferFrom(address, address, uint256) public pure override {
+        revert("MO-NFT: safeTransferFrom is forbidden");
     }
 
     function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory _data
-    ) public override {
-        require(
-            isOwner(tokenId, _msgSender()),
-            "MO-NFT: Trigger from incorrect account"
-        );
-        _safeTransfer(from, to, tokenId, _data);
-    }
-
-    function _safeTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory _data
-    ) internal {
-        _data; // silence the warning
-        _transfer(from, to, tokenId);
-        //    require(_checkOnERC721Received(from, to, tokenId, _data), "Transfer to non ERC721Receiver implementer");
+        address,
+        address,
+        uint256,
+        bytes memory
+    ) public pure override {
+        revert("MO-NFT: safeTransferFrom is forbidden");
     }
 
     function _transfer(address from, address to, uint256 tokenId) internal {
@@ -167,6 +149,22 @@ contract MultiOwnerNFT is Context, ERC165, IERC721, Ownable {
         _balances[to] += 1;
 
         emit TokenTransferred(tokenId, from, to);
+    }
+
+    // New burn function
+    function burn(uint256 tokenId) external {
+        require(
+            isOwner(tokenId, _msgSender()),
+            "MO-NFT: Only an owner can burn their ownership"
+        );
+
+        // Remove the caller from the owners set
+        _owners[tokenId].remove(_msgSender());
+
+        // Decrement the balance of the owner
+        _balances[_msgSender()] -= 1;
+
+        emit TokenBurned(tokenId, _msgSender());
     }
 
     function supportsInterface(
