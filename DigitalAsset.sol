@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "./MONFT.sol";
+import "./IDigitalAsset.sol";
 
-contract DigitAsset is MultiOwnerNFT {
-    
+contract DigitAsset is MultiOwnerNFT, IDigitalAsset {
     struct DigitAssetInfo {
         uint256 assetId;
         string assetName;
@@ -18,7 +18,7 @@ contract DigitAsset is MultiOwnerNFT {
 
     // Events
     event AssetProvided(
-        uint256 indexed assetId, 
+        uint256 indexed assetId,
         uint256 indexed size,
         address indexed provider,
         bytes32 fileHash,
@@ -38,27 +38,31 @@ contract DigitAsset is MultiOwnerNFT {
 
     constructor() payable MultiOwnerNFT(msg.sender) {}
 
+    function getAssetsTotalSupply() public view override returns (uint256) {
+        return totalSupply();
+    }
+
+    function getAssetName(
+        uint256 assetId
+    ) public view override returns (string memory) {
+        require(_exists(assetId), "Asset: Asset does not exist");
+        return _assets[assetId].assetName;
+    }
+
     function getAssetDetails(
         uint256 assetId
-    ) public view returns (
-        uint256 id,
-        string memory name,
-        uint256 size,
-        bytes32 fileHash,
-        address provider,
-        uint256 transferValue
-    ) {
+    ) public view override returns (AssetDetails memory) {
         require(_exists(assetId), "Asset: Asset does not exist");
-
         DigitAssetInfo storage asset = _assets[assetId];
-        return (
-            asset.assetId,
-            asset.assetName,
-            asset.size,
-            asset.fileHash,
-            asset.provider,
-            asset.transferValue
-        );
+        return
+            AssetDetails({
+                assetId: asset.assetId,
+                assetName: asset.assetName,
+                size: asset.size,
+                fileHash: asset.fileHash,
+                provider: asset.provider,
+                transferValue: asset.transferValue
+            });
     }
 
     function provide(
@@ -77,20 +81,20 @@ contract DigitAsset is MultiOwnerNFT {
             provider: provider,
             transferValue: transferValue
         });
-        emit AssetProvided(
-            assetId, 
-            size,
-            provider,
-            fileHash,
-            transferValue
-        );
+        emit AssetProvided(assetId, size, provider, fileHash, transferValue);
         return assetId;
     }
 
-    function setTransferValue(uint256 assetId, uint256 newTransferValue) external {
+    function setTransferValue(
+        uint256 assetId,
+        uint256 newTransferValue
+    ) external {
         require(_exists(assetId), "Asset: Asset does not exist");
         DigitAssetInfo storage asset = _assets[assetId];
-        require(msg.sender == asset.provider, "Only provider can update transfer value");
+        require(
+            msg.sender == asset.provider,
+            "Only provider can update transfer value"
+        );
 
         uint256 oldTransferValue = asset.transferValue;
         asset.transferValue = newTransferValue;
@@ -118,7 +122,7 @@ contract DigitAsset is MultiOwnerNFT {
         uint256 tokenId
     ) internal {
         DigitAssetInfo storage asset = _assets[tokenId];
-        
+
         // Pay the provider the transferValue for this asset
         require(
             address(this).balance >= asset.transferValue,

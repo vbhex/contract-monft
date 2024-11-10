@@ -111,7 +111,7 @@ contract MultiOwnerNFT is Context, ERC165, IERC721, Ownable {
         address from,
         address to,
         uint256 tokenId
-    ) public override {
+    ) public virtual override {
         require(
             isOwner(tokenId, _msgSender()),
             "MO-NFT: Transfer from incorrect account"
