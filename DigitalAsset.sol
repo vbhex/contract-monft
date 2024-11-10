@@ -108,7 +108,7 @@ contract DigitAsset is MultiOwnerNFT, IDigitalAsset {
         uint256 tokenId
     ) public override {
         require(
-            isOwner(tokenId, from),
+            isOwner(tokenId, msg.sender), // Ensure that `msg.sender` is an owner
             "MO-NFT: Transfer from incorrect account"
         );
         require(to != address(0), "MO-NFT: Transfer to the zero address");
